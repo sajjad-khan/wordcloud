@@ -1,9 +1,14 @@
-from flask import Flask, request, render_template, logging
-from nltk.tokenize import word_tokenize  # to split sentences into words
+from flask import Flask, request, render_template
+import operator
+import re
+import nltk
 from nltk.corpus import stopwords  # to get a list of stopwords
-from collections import Counter  # to get words-frequency
+from nltk.tokenize import word_tokenize  # to split sentences into words
+from collections import Counter
+from bs4 import BeautifulSoup
 import requests  # this we will use to call API and get data
 import json  # to convert python dictionary to string format
+
 from sample_data import SampleWords
 
 app = Flask(__name__)
@@ -21,46 +26,44 @@ def word_cloud():
     if user_url:
         return get_news_words(user_url)
     # GET method
+    print('printing sample data')
     return json.dumps(SampleWords())
 
 def get_news_words(user_url):
-    try:            
-        # call the api
-        response = requests.get(user_url)
-        
-        # get the data in json format
-        result = response.json()
-        
-        # all the news articles are listed under 'articles' key
-        # we are interested in the description of each news article
-        sentences = ""
-        for news in result['articles']:
-            description = news['description']
-            sentences = sentences + " " + description
-        
-        # split sentences into words
-        words = word_tokenize(sentences)
-        
-        # get stopwords
-        stop_words = set(stopwords.words('english'))
-        
-        # remove stopwords from our words list and also remove any word whose length is less than 3
-        # stopwords are commonly occuring words like is, am, are, they, some, etc.
-        words = [word for word in words if word not in stop_words and len(word) > 3]
-        
-        # now, get the words and their frequency
-        words_freq = Counter(words)
-        
-        # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
-        # so, lets convert out word_freq in the respective format
-        words_json = [{'text': word, 'weight': count} for word, count in words_freq.items()]
-        
-        # now convert it into a string format and return it
+    if user_url:
+        r = None
+        try:            
+            # call the api
+            r = requests.get(user_url)
+            print(r)
+        except Exception as e:
+            print("Unable to get URL. Please make sure it's valid and try again.")
+            print(repr(e))
+        if r:
+            # text processing
+            raw = BeautifulSoup(r.text, 'html.parser').get_text()
+            # split sentences into words
+            words = word_tokenize(raw)
+            
+            # get stopwords
+            stop_words = set(stopwords.words('english'))
+            
+            # remove stopwords from our words list and also remove any word whose length is less than 3
+            # stopwords are commonly occuring words like is, am, are, they, some, etc.
+            words = [word for word in words if word not in stop_words and len(word) > 3]
+            
+            # now, get the words and their frequency
+            words_freq = Counter(words)
+            
+            # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
+            # so, lets convert out word_freq in the respective format
+            words_json = [{'text': word, 'weight': count} for word, count in words_freq.items()]
+            
+            # now convert it into a string format and return it
 
-        return json.dumps(words_json)
-    except Exception as e:
-        app.logger.error('Exception in making words count: '+ repr(e))
-        return '[]'
+            print('Done!')
+            return json.dumps(words_json)    
+    return '[]'
 
 
 if __name__ == '__main__':

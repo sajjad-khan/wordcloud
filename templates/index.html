@@ -2,7 +2,7 @@
 <html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
-    <title>News Word Cloud</title>
+    <title>Word Cloud</title>
 
     <!-- You can download css and js from https://github.com/mistic100/jQCloud/tree/master/dist -->
     <link rel="stylesheet" href="../static/css/jqcloud.min.css">
@@ -43,10 +43,6 @@
                 <div id="word_cloud">
                 </div>
             </center>
-            {% if frequencies %}
-                {{ frequencies }}
-            {% endif %}
-
         </div>
     </div>
 
@@ -66,8 +62,10 @@
                 "user_url": user_url
             },
             success: function (data) {
+                console.log("success");
                 // returned data is in string format we have to convert it back into json format
                 var words_data = $.parseJSON(data);
+                console.log(words_data);
                 // we will build a word cloud into our div with id=word_cloud
                 // we have to specify width and height of the word
                 $('#word_cloud').jQCloud(words_data, {
