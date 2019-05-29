@@ -10,6 +10,7 @@ import requests  # this we will use to call API and get data
 import json  # to convert python dictionary to string format
 
 from sample_data import SampleWords
+from urllib.parse import unquote
 
 app = Flask(__name__)
 
@@ -22,7 +23,7 @@ def home_page():
 @app.route('/word_cloud', methods=['GET'])
 def word_cloud():
     user_url = request.args.get('user_url')
-    print(user_url)    
+    user_url = unquote(user_url)
     if user_url:
         return get_news_words(user_url)
     # GET method
@@ -54,15 +55,26 @@ def get_news_words(user_url):
             # stop words
             stop_words = set(stopwords.words('english'))
 
-            no_stop_words = [w for w in raw_words if w.lower() not in stop_words and len(w) > 3]
-            no_stop_words_count = Counter(no_stop_words)
-            print("Filtered unique words count : {}".format(len(no_stop_words_count)))
+            norm_words = [w for w in raw_words if w.lower() not in stop_words and len(w) > 3 and len(w) < 50]
+            norm_words_counts = Counter(norm_words)
+            print("Filtered unique words count : {}".format(len(norm_words_counts)))
             # save the results
             
+            norm_words_count_sorted = norm_words_counts.most_common()
+
+            norm_words_counts_sorted_100 =  norm_words_count_sorted[:100]
+            
+            print("final: ", len(norm_words_counts_sorted_100))
+            print("most common")
+            for letter, count in norm_words_counts_sorted_100:
+                print ('{} == {}'.format(letter, count))
+
+            print("most common end")
             # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
             # so, lets convert out word_freq in the respective format
-            words_json = [{'text': word, 'weight': count} for word, count in no_stop_words_count.items()]
+            words_json = [{'text': word, 'weight': count} for word, count in norm_words_counts_sorted_100]
             
+            #print(words_json)
             print('Done!')
             # now convert it into a string format and return it
             return json.dumps(words_json)    
