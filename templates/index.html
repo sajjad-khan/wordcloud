@@ -2,7 +2,7 @@
 <html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
-    <title>Word Cloud</title>
+    <title>News Word Cloud</title>
 
     <!-- You can download css and js from https://github.com/mistic100/jQCloud/tree/master/dist -->
     <link rel="stylesheet" href="../static/css/jqcloud.min.css">
@@ -12,31 +12,31 @@
     <!-- You need to include jquery before the jqcloud.js -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script type="text/javascript" src="../static/js/jqcloud.min.js"></script>
-    
+    <!-- here we included our script.js -->
     <script type="text/javascript" src="../static/js/script.js"></script>
-    
     <!-- bootstrap js-->
     <script src="../static/js/bootstrap.min.js"></script>
 </head>
 <body>
     <!-- Empty div where JQCloud will build the word cloud-->
     <div class="container">
-        <div class="jumbotron text-center">
+        <div class="jumbotron center-text">
             <div>
                 <h1>Word Cloud</h1>
-                <p> This application is built using Python, Flask and JQCloud </p>
+                <p> This app is built using Python, Flask and JQCloud </p>
             </div>
-            
             <!-- Form to get input url, can add more widgets later -->
             <form>
-                    <div class="form-group">
-                        <label> Enter the url </label>
-                        <input type="text" id="id_user_url" name="user_url" class="form-control">
-                    </div>
-    
-                    <p> <input onclick="submitClicked()" class="btn btn-primary" value="Go" readonly> </p>
+                <div class="form-group">
+                    <label> Enter the url </label>
+                    <input type="text" id="id_user_url" name="user_url" class="form-control">
+                </div>
+
+                <p> <input onclick="submitClicked()" class="btn btn-primary" value="Go" readonly> </p>
             </form>            
+        
         </div>
+
         <!-- here JQCloud will add the html for the word cloud-->
         <div class="row">
             <center>
@@ -47,38 +47,35 @@
     </div>
 
     <script>
-    function submitClicked() {
-        var user_url = document.getElementById("id_user_url").value;
-        if(!user_url) {
-            alert("Kindly enter the url first.")
-            return 
-        }
-        console.log('draw graph called');
-        $.ajax({
-            url: '/word_cloud', 
-            type: 'GET',
-            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
-            data: { 
-                "user_url": user_url
-            },
-            success: function (data) {
-                console.log("success");
-                // returned data is in string format we have to convert it back into json format
-                var words_data = $.parseJSON(data);
-                console.log(words_data);
-                // we will build a word cloud into our div with id=word_cloud
-                // we have to specify width and height of the word
-                $('#word_cloud').jQCloud(words_data, {
-                    autoResize: true,
-                    shape: 'rectangular'
-                });
-            },
-            error: function () {
-               alert("error");
+        function submitClicked() {
+            var user_url = document.getElementById("id_user_url").value;
+            if(!user_url) {
+                alert("Kindly enter the url first.")
+                return 
             }
-        });
-    }
-    </script>
-            
+            console.log('draw graph called');
+            $.ajax({
+                url: '/word_cloud', 
+                type: 'GET',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                data: { 
+                    "user_url": user_url
+                },
+                success: function (data) {
+                    console.log("success");
+                    // returned data is in string format we have to convert it back into json format
+                    var words_data = $.parseJSON(data);
+                    console.log(words_data);
+                    // we will build a word cloud into our div with id=word_cloud
+                    // we have to specify width and height of the word
+                    $('#word_cloud').jQCloud('update', words_data);
+                },
+                error: function () {
+                   alert("error");
+                }
+            });
+        }
+        </script>
+    
 </body>
 </html>
