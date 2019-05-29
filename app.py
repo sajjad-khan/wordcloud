@@ -12,7 +12,21 @@ import json  # to convert python dictionary to string format
 from sample_data import SampleWords
 from urllib.parse import unquote
 
+import hashlib, uuid # for salted hashes
+from passlib.hash import sha256_crypt # for encrypting words
+
 app = Flask(__name__)
+
+from flask_mysqldb import MySQL
+# Config MySQL
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'Haripur@1'
+app.config['MYSQL_DB'] = 'wordscloudapp'
+app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+
+# init MySQL
+mysql = MySQL(app)
 
 url = None
 
@@ -60,14 +74,15 @@ def get_news_words(user_url):
             print("Filtered unique words count : {}".format(len(norm_words_counts)))
             # save the results
             
-            norm_words_count_sorted = norm_words_counts.most_common()
+            norm_words_counts_sorted = norm_words_counts.most_common()
 
-            norm_words_counts_sorted_100 =  norm_words_count_sorted[:100]
+            norm_words_counts_sorted_100 =  norm_words_counts_sorted[:100]
             
             print("final: ", len(norm_words_counts_sorted_100))
             print("most common")
             for letter, count in norm_words_counts_sorted_100:
-                print ('{} == {}'.format(letter, count))
+                hashsize = len(encrypt_word(letter))
+                print ('{} == hash size == {}'.format(letter, hashsize))
 
             print("most common end")
             # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
@@ -80,6 +95,37 @@ def get_news_words(user_url):
             return json.dumps(words_json)    
     return '[]'
 
+def save_words(final_words):
+        # Create cursor
+    cur = mysql.connection.cursor()
+
+    # Insert
+    cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)", (name, email, username, password))
+
+    # Commit to DB
+    mysql.connection.commit()
+
+    # Close connection
+    cur.close()
+
+
+#def get_word_salted_hash(word):
+#    salt = uuid.uuid4().hex
+#    hashed_word = hashlib.sha512(word + salt.encode('utf-8')).hexdigest()
+#    return hashed_word
+
+def get_word_salted_hash(password):
+    # uuid is used to generate a random number
+    salt = uuid.uuid4().hex
+    return hashlib.sha256(salt.encode() + password.encode()).hexdigest() + ':' + salt
+    
+def check_word_salted_hash(hashed_password, user_password):
+    password, salt = hashed_password.split(':')
+    return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
+
+def encrypt_word(word):
+    encrypted_word = sha256_crypt.encrypt(word)
+    return encrypted_word
 
 if __name__ == '__main__':
     app.run(debug=True) 
