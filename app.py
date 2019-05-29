@@ -43,14 +43,23 @@ def get_news_words(user_url):
             # text processing
             raw = BeautifulSoup(r.text, 'html.parser').get_text()
             # split sentences into words
-            words = word_tokenize(raw)
+            tokens = word_tokenize(raw)
             
-            # get stopwords
+            # convert it to nltk.Text
+            text = nltk.Text(tokens)
+            
+            # remove punctuation, count raw words
+            nonPunct = re.compile('.*[A-Za-z].*')
+            raw_words = [w for w in text if nonPunct.match(w)]
+            raw_word_count = Counter(raw_words)
+            print(raw_word_count)
+
+            # get stopwords           
             stop_words = set(stopwords.words('english'))
             
             # remove stopwords from our words list and also remove any word whose length is less than 3
             # stopwords are commonly occuring words like is, am, are, they, some, etc.
-            words = [word for word in words if word not in stop_words and len(word) > 3]
+            words = [word for word in raw_words if word.lower() not in stop_words and len(word) > 3]
             
             # now, get the words and their frequency
             words_freq = Counter(words)
