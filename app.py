@@ -38,8 +38,8 @@ def home_page():
 @app.route('/word_cloud', methods=['GET'])
 def word_cloud():
     user_url = request.args.get('user_url')
-    user_url = unquote(user_url)
     if user_url:
+        user_url = unquote(user_url)
         return get_news_words(user_url)
     # GET method
     print('printing sample data')
@@ -113,20 +113,27 @@ def save_words(final_words):
     cur = mysql.connection.cursor()
 
     # MySQL query string
-    query = "INSERT INTO topwords(word_shash, word, count) VALUES(%s, %s, %s)"
-    
+    query = '''INSERT INTO 
+                topwords(word_shash, word, count) 
+                VALUES(%s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                count = VALUES(count)
+                '''
     # values list
     values = [(get_word_salted_hash(word), encode(word), count) for word, count in final_words]
     
     # Insert Single row    
     # cur.execute(query, values)
 
-    # Insert Multiple rows
-    result  = cur.executemany(query, values)
-    print(result)
+    try:
+        # Insert Multiple rows
+        result  = cur.executemany(query, values)
+        print(result)
 
-    # Commit to DB
-    mysql.connection.commit()
+        # Commit to DB
+        mysql.connection.commit()
+    except:
+        mysql.connection.rollback() 
 
     # Close connection
     cur.close()
