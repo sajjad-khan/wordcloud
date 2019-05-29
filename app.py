@@ -13,7 +13,8 @@ from sample_data import SampleWords
 from urllib.parse import unquote
 
 import hashlib, uuid # for salted hashes
-from passlib.hash import sha256_crypt # for encrypting words
+from Crypto.Cipher import AES
+import base64
 
 app = Flask(__name__)
 
@@ -78,11 +79,21 @@ def get_news_words(user_url):
 
             norm_words_counts_sorted_100 =  norm_words_counts_sorted[:100]
             
+            e = encode('a message')
+            d = decode(e)
+            print([e])
+            print([d])
+
             print("final: ", len(norm_words_counts_sorted_100))
             print("most common")
             for letter, count in norm_words_counts_sorted_100:
-                hashsize = len(encrypt_word(letter))
-                print ('{} == hash size == {}'.format(letter, hashsize))
+                e = encode(letter)
+                d = decode(e)
+                print([letter])
+                print([e])
+                print([d])
+
+                print (' =  = {}'.format(len(e)))
 
             print("most common end")
             # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
@@ -90,29 +101,35 @@ def get_news_words(user_url):
             words_json = [{'text': word, 'weight': count} for word, count in norm_words_counts_sorted_100]
             
             #print(words_json)
+            save_words(norm_words_counts_sorted_100)
+
             print('Done!')
             # now convert it into a string format and return it
             return json.dumps(words_json)    
     return '[]'
 
 def save_words(final_words):
-        # Create cursor
+    # Create cursor
     cur = mysql.connection.cursor()
 
-    # Insert
-    cur.execute("INSERT INTO users(name, email, username, password) VALUES(%s, %s, %s, %s)", (name, email, username, password))
+    # MySQL query string
+    query = "INSERT INTO topwords(word_shash, word, count) VALUES(%s, %s, %s)"
+    
+    # values list
+    values = [(get_word_salted_hash(word), encode(word), count) for word, count in final_words]
+    
+    # Insert Single row    
+    # cur.execute(query, values)
+
+    # Insert Multiple rows
+    result  = cur.executemany(query, values)
+    print(result)
 
     # Commit to DB
     mysql.connection.commit()
 
     # Close connection
     cur.close()
-
-
-#def get_word_salted_hash(word):
-#    salt = uuid.uuid4().hex
-#    hashed_word = hashlib.sha512(word + salt.encode('utf-8')).hexdigest()
-#    return hashed_word
 
 def get_word_salted_hash(password):
     # uuid is used to generate a random number
@@ -123,9 +140,30 @@ def check_word_salted_hash(hashed_password, user_password):
     password, salt = hashed_password.split(':')
     return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
 
-def encrypt_word(word):
-    encrypted_word = sha256_crypt.encrypt(word)
-    return encrypted_word
+secret_key = '1234567890123456' # store somewhere safe
+
+import six, base64
+
+def encode(string):
+    key = secret_key
+    encoded_chars = []
+    for i in range(len(string)):
+        key_c = key[i % len(key)]
+        encoded_c = chr(ord(string[i]) + ord(key_c) % 256)
+        encoded_chars.append(encoded_c)
+    encoded_string = ''.join(encoded_chars)
+    return encoded_string
+
+def decode(string):
+    key = secret_key
+    encoded_chars = []
+    for i in range(len(string)):
+        key_c = key[i % len(key)]
+        encoded_c = chr((ord(string[i]) - ord(key_c) + 256) % 256)
+        encoded_chars.append(encoded_c)
+    encoded_string = ''.join(encoded_chars)
+    return encoded_string
+
 
 if __name__ == '__main__':
     app.run(debug=True) 
