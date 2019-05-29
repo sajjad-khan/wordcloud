@@ -42,35 +42,29 @@ def get_news_words(user_url):
         if r:
             # text processing
             raw = BeautifulSoup(r.text, 'html.parser').get_text()
-            # split sentences into words
+            # nltk.data.path.append('./nltk_data/')  # set the path
             tokens = word_tokenize(raw)
-            
-            # convert it to nltk.Text
             text = nltk.Text(tokens)
-            
             # remove punctuation, count raw words
             nonPunct = re.compile('.*[A-Za-z].*')
             raw_words = [w for w in text if nonPunct.match(w)]
             raw_word_count = Counter(raw_words)
-            print(raw_word_count)
-
-            # get stopwords           
+            print("Raw words count : {}".format(len(raw_word_count)))
+            
+            # stop words
             stop_words = set(stopwords.words('english'))
-            
-            # remove stopwords from our words list and also remove any word whose length is less than 3
-            # stopwords are commonly occuring words like is, am, are, they, some, etc.
-            words = [word for word in raw_words if word.lower() not in stop_words and len(word) > 3]
-            
-            # now, get the words and their frequency
-            words_freq = Counter(words)
+
+            no_stop_words = [w for w in raw_words if w.lower() not in stop_words and len(w) > 3]
+            no_stop_words_count = Counter(no_stop_words)
+            print("Filtered unique words count : {}".format(len(no_stop_words_count)))
+            # save the results
             
             # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
             # so, lets convert out word_freq in the respective format
-            words_json = [{'text': word, 'weight': count} for word, count in words_freq.items()]
+            words_json = [{'text': word, 'weight': count} for word, count in no_stop_words_count.items()]
             
-            # now convert it into a string format and return it
-
             print('Done!')
+            # now convert it into a string format and return it
             return json.dumps(words_json)    
     return '[]'
 
