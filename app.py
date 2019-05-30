@@ -9,6 +9,7 @@ from db_ctrl import DbCtrl
 from url_to_words import UrlToWords
 from salted_hash import SaltedHash
 from cust_encryption import CustEncryption
+from aes_encryption import AESEncryption
 
 from flask_mysqldb import MySQL
 
@@ -30,7 +31,8 @@ mysql = DbCtrl(MySQL(app))
 hasher = SaltedHash()
 
 # init encryption object
-cust_encryptor = CustEncryption()
+# encryptor = CustEncryption()
+encryptor = AESEncryption()
 
 @app.route('/')
 def home_page():
@@ -67,7 +69,7 @@ def get_news_words(user_url):
     return '[]'
 
 def save_words(final_words):
-    values = [(hasher.get_salted_hash(word), cust_encryptor.encypt(word), count) for word, count in final_words]
+    values = [(hasher.get_salted_hash(word), encryptor.encypt(word), count) for word, count in final_words]
     
     mysql.insert_many(values)
 
@@ -78,7 +80,7 @@ def admin():
 
     if(len(result) > 0):
         for word_row in result:
-            word_row['word'] = cust_encryptor.decrypt(word_row['word'])
+            word_row['word'] = encryptor.decrypt(word_row['word'])
 
         return render_template('admin.html', plain_words_list=result)
     else:
