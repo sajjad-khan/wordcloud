@@ -1,26 +1,25 @@
-from flask import Flask, request, render_template, session
-import operator
-import re
-import nltk
+from flask import Flask, request, render_template, session, logging
+import re # regex import
+import nltk # general purpose import of nltk
 from nltk.corpus import stopwords  # to get a list of stopwords
 from nltk.tokenize import word_tokenize  # to split sentences into words
 from collections import Counter
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup # for parsing raw html string
 import requests  # this we will use to call API and get data
 import json  # to convert python dictionary to string format
 
-from sample_data import SampleWords
-from urllib.parse import unquote
+from sample_data import SampleWords # sample starter words list
+from urllib.parse import unquote # for url encoding
 
-import hashlib, uuid # for salted hashes
-from Crypto.Cipher import AES
-import base64
+import hashlib, uuid, hashlib, base64 # for salted hash and encryption
 
-import hashlib
-
+# Create flask app
 app = Flask(__name__)
 
+from db_ctrl import DB_CTRL
+
 from flask_mysqldb import MySQL
+
 # Config MySQL
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
@@ -28,12 +27,9 @@ app.config['MYSQL_PASSWORD'] = 'Haripur@1'
 app.config['MYSQL_DB'] = 'wordscloudapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 app.config['USE_UNICODE'] = True
-# use_unicode=True
 
 # init MySQL
 mysql = MySQL(app)
-
-url = None
 
 @app.route('/')
 def home_page():
@@ -45,64 +41,53 @@ def word_cloud():
     if user_url:
         user_url = unquote(user_url)
         return get_news_words(user_url)
+
     # GET method
-    print('printing sample data')
+    app.logger.info('app.logger.infoing sample data')
     return json.dumps(SampleWords())
 
 def get_news_words(user_url):
     if user_url:
-        r = None
+        raw_html = None
         try:            
             # call the api
-            r = requests.get(user_url)
-            print(r)
+            raw_html = requests.get(user_url)
+            app.logger.info(raw_html)
         except Exception as e:
-            print("Unable to get URL. Please make sure it's valid and try again.")
-            print(repr(e))
-        if r:
+            app.logger.info("Unable to get URL. Please make sure it's valid and try again.")
+            app.logger.info(repr(e))
+        if raw_html:
             # text processing
-            raw = BeautifulSoup(r.text, 'html.parser').get_text()
+            raw = BeautifulSoup(raw_html.text, 'html.parser').get_text()
             # nltk.data.path.append('./nltk_data/')  # set the path
             tokens = word_tokenize(raw)
             text = nltk.Text(tokens)
-            # remove punctuation, count raw words
+
+            # remove punctuation, create raw words
             nonPunct = re.compile('.*[A-Za-z].*')
             raw_words = [w for w in text if nonPunct.match(w)]
-            raw_word_count = Counter(raw_words)
-            # print("Raw words count : {}".format(len(raw_word_count)))
             
             # stop words
             stop_words = set(stopwords.words('english'))
 
             norm_words = [w for w in raw_words if w.lower() not in stop_words and len(w) > 3 and len(w) < 50]
             norm_words_counts = Counter(norm_words)
-            # print("Filtered unique words count : {}".format(len(norm_words_counts)))
-            # save the results
             
+            # sort the list according to frequency
             norm_words_counts_sorted = norm_words_counts.most_common()
 
-            norm_words_counts_sorted_100 =  norm_words_counts_sorted[:2]
+            # take out only top 100
+            norm_words_counts_sorted_100 =  norm_words_counts_sorted[:100]
 
-            # print("final: ", len(norm_words_counts_sorted_100))
-            print("most common")
-            for letter, count in norm_words_counts_sorted_100:
-                e = encypt_text(letter)
-                d = decrypt_text(e)
-                print('original : ', [letter])
-                print('encoded : ', [e])
-                print('decoded : ', [d])
-
-                print (' =  = {}'.format(len(e)))
-
-            print("most common end")
             # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
             # so, lets convert out word_freq in the respective format
             words_json = [{'text': word, 'weight': count} for word, count in norm_words_counts_sorted_100]
             
-            #print(words_json)
+            # save the results into db
             save_words(norm_words_counts_sorted_100)
 
-            print('Done!')
+            app.logger.info('Done!')
+
             # now convert it into a string format and return it
             return json.dumps(words_json)    
     return '[]'
@@ -119,7 +104,7 @@ def save_words(final_words):
                 count = VALUES(count)
                 '''
     # values list
-    values = [(get_word_salted_hash(word), encypt_text(word), count) for word, count in final_words]
+    values = [(get_word_salted_hash(word), b64_encypt_text(word), count) for word, count in final_words]
     
     # Insert Single row    
     # cur.execute(query, values)
@@ -127,7 +112,7 @@ def save_words(final_words):
     try:
         # Insert Multiple rows
         result  = cur.executemany(query, values)
-        print(result)
+        app.logger.info(result)
 
         # Commit to DB
         mysql.connection.commit()
@@ -137,7 +122,7 @@ def save_words(final_words):
     # Close connection
     cur.close()
 
-# uuid is used to generate a random number
+# uuid is used to generate a random number to generate salted hash key
 salt = uuid.uuid4().hex
 
 def get_word_salted_hash(password):
@@ -149,9 +134,8 @@ def get_word_from_salted_hash(hashed_word, word):
 
 secret_key = '1234567890123456' # store somewhere safe
 
-import six, base64
 
-def encypt_text(string):
+def b64_encypt_text(string):
     key = secret_key
     encoded_chars = []
     for i in range(len(string)):
@@ -161,11 +145,8 @@ def encypt_text(string):
     encoded_string = ''.join(encoded_chars)
     return base64.b64encode(bytes(encoded_string, "utf-8"))
 
-def decrypt_text(string):
-    print("base64: ", string)
-    # string = base64.b64decode(string)
+def b64_decrypt_text(string):
     string = str(base64.b64decode(string), encoding = 'utf_8')
-    print("base64: ", string)
     key = secret_key
     encoded_chars = []
     for i in range(len(string)):
@@ -180,18 +161,14 @@ def admin():
     # Create curser
     cur = mysql.connection.cursor()
 
-    # Get articles
+    # Get words
     result = cur.execute("SELECT * FROM topwords ORDER BY count DESC")
     words_list = cur.fetchall()
+    cur.close()
 
     if(result > 0):
-            # values list
-        # plain_words_list = [{'hword': hword, 'word': decode(eword), 'frequency': count} for hword, eword, count in words_list]
-        # plain_words_list = [(get_word_from_salted_hash(word), decode(word), count) for word, count in words_list]
         for word_row in words_list:
-            word_row['word'] = decrypt_text(word_row['word'])
-            # print(" == ", word_row['word'], " == ", decrypt_text(word_row['word']))
-            # d = decode(e)
+            word_row['word'] = b64_decrypt_text(word_row['word'])
 
         plain_words_list = words_list
         return render_template('admin.html', plain_words_list=plain_words_list)
@@ -199,7 +176,6 @@ def admin():
         msg = 'No Words Found'
         return render_template('admin.html', msg=msg)
 
-    cur.close()
 
 if __name__ == '__main__':
     app.secret_key = 'secret123'
