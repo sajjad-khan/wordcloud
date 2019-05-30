@@ -16,6 +16,8 @@ import hashlib, uuid # for salted hashes
 from Crypto.Cipher import AES
 import base64
 
+import hashlib
+
 app = Flask(__name__)
 
 from flask_mysqldb import MySQL
@@ -67,14 +69,14 @@ def get_news_words(user_url):
             nonPunct = re.compile('.*[A-Za-z].*')
             raw_words = [w for w in text if nonPunct.match(w)]
             raw_word_count = Counter(raw_words)
-            print("Raw words count : {}".format(len(raw_word_count)))
+            # print("Raw words count : {}".format(len(raw_word_count)))
             
             # stop words
             stop_words = set(stopwords.words('english'))
 
             norm_words = [w for w in raw_words if w.lower() not in stop_words and len(w) > 3 and len(w) < 50]
             norm_words_counts = Counter(norm_words)
-            print("Filtered unique words count : {}".format(len(norm_words_counts)))
+            # print("Filtered unique words count : {}".format(len(norm_words_counts)))
             # save the results
             
             norm_words_counts_sorted = norm_words_counts.most_common()
@@ -84,8 +86,8 @@ def get_news_words(user_url):
             # print("final: ", len(norm_words_counts_sorted_100))
             print("most common")
             for letter, count in norm_words_counts_sorted_100:
-                e = encode(letter)
-                d = decode(e)
+                e = encypt_text(letter)
+                d = decrypt_text(e)
                 print('original : ', [letter])
                 print('encoded : ', [e])
                 print('decoded : ', [d])
@@ -117,7 +119,7 @@ def save_words(final_words):
                 count = VALUES(count)
                 '''
     # values list
-    values = [(get_word_salted_hash(word), encode(word).encode('utf8'), count) for word, count in final_words]
+    values = [(get_word_salted_hash(word), encypt_text(word), count) for word, count in final_words]
     
     # Insert Single row    
     # cur.execute(query, values)
@@ -149,7 +151,7 @@ secret_key = '1234567890123456' # store somewhere safe
 
 import six, base64
 
-def encode(string):
+def encypt_text(string):
     key = secret_key
     encoded_chars = []
     for i in range(len(string)):
@@ -157,9 +159,13 @@ def encode(string):
         encoded_c = chr(ord(string[i]) + ord(key_c) % 256)
         encoded_chars.append(encoded_c)
     encoded_string = ''.join(encoded_chars)
-    return encoded_string
+    return base64.b64encode(bytes(encoded_string, "utf-8"))
 
-def decode(string):
+def decrypt_text(string):
+    print("base64: ", string)
+    # string = base64.b64decode(string)
+    string = str(base64.b64decode(string), encoding = 'utf_8')
+    print("base64: ", string)
     key = secret_key
     encoded_chars = []
     for i in range(len(string)):
@@ -183,8 +189,8 @@ def admin():
         # plain_words_list = [{'hword': hword, 'word': decode(eword), 'frequency': count} for hword, eword, count in words_list]
         # plain_words_list = [(get_word_from_salted_hash(word), decode(word), count) for word, count in words_list]
         for word_row in words_list:
-            word_row['word'] = 'word'
-            print(" == ", word_row['word'], " == ", decode(word_row['word']))
+            word_row['word'] = decrypt_text(word_row['word'])
+            # print(" == ", word_row['word'], " == ", decrypt_text(word_row['word']))
             # d = decode(e)
 
         plain_words_list = words_list
