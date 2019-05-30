@@ -50,16 +50,17 @@ def word_cloud():
 
 def get_news_words(user_url):
     # take out only top 100
-    url_parser = UrlToWords('https://www.google.com/')
-    words_sorted_100 = url_parser.parse(100)
-
-    if len(words_sorted_100) > 0:
+    url_parser = UrlToWords(user_url)
+    text = url_parser.get_all_text_sim()
+    top_counts_100 = url_parser.get_word_frequencies(text, 100)
+    
+    if len(top_counts_100) > 0:
         # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
         # so, lets convert out word_freq in the respective format
-        words_json = [{'text': word, 'weight': count} for word, count in words_sorted_100]
+        words_json = [{'text': word, 'weight': count} for word, count in top_counts_100]
         
         # save the results into db
-        save_words(words_sorted_100)
+        save_words(top_counts_100)
 
         app.logger.info('Done!')
 
