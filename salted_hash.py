@@ -1,3 +1,7 @@
+# This module creates salted hash of a word
+# Hashes unlike encryption are one way streat
+# You can not get the original word back 
+
 import hashlib, uuid # for salted hash
 
 class SaltedHash:

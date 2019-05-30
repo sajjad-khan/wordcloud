@@ -1,3 +1,6 @@
+# This module has base64 custom encryption 
+# for performance purposes
+
 import base64 # for converting to base64 number
 
 class CustEncryption:

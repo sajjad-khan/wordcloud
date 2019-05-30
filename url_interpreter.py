@@ -1,3 +1,8 @@
+# This module has three varients to parse 
+# text from a html page
+# and one method using nltk to calculate
+# word frequency in a text
+
 from urllib.parse import unquote # for url encoding
 import re # regex import
 import nltk # general purpose import of nltk
@@ -43,11 +48,19 @@ class UrlInterpreter:
         return []
 
     def get_all_text_bs(self):
+        '''
+        Very basic html page parser using BeautifulSoup 
+        has a lot of escape/special characters
+        '''
         page = self.get_page()
         raw = BeautifulSoup(page, 'html.parser').get_text()
         return raw
 
     def get_all_text_sim(self):
+        '''
+        Custom html page parser using BeautifulSoup 
+        has very good results but a bit slow
+        '''
         page = self.get_page()
         tree = BeautifulSoup(page, 'lxml')
         body = tree.body
@@ -63,6 +76,10 @@ class UrlInterpreter:
         return text
 
     def get_all_text_jt(self):
+        '''
+        Using justext package
+        has very good results but very slow
+        '''
         page = self.get_page()
         paragraphs = justext.justext(page, justext.get_stoplist("English"))
         all_text = ''
@@ -72,6 +89,7 @@ class UrlInterpreter:
         return all_text
 
     def get_page(self):
+        ''' Reads in page from url '''
         page = urlopen(self.user_url)
         return page
 

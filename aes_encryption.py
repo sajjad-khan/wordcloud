@@ -1,3 +1,7 @@
+# This module uses Crypto package
+# to do base64 AES encryption 
+# more secure than custom encryption
+
 from Crypto.Cipher import AES
 import base64 # for converting to base64 number
 from cryptography.fernet import Fernet

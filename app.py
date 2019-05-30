@@ -44,13 +44,21 @@ def home_page():
 def word_cloud():
     user_url = request.args.get('user_url')
     if user_url:
-        return get_news_words(user_url)
+        return get_cloud_words(user_url)
 
     # GET method
     app.logger.info('app.logger.infoing sample data')
     return json.dumps(SampleWords())
 
-def get_news_words(user_url):
+def get_cloud_words(user_url):
+    '''
+    This function takes user input url, uses utility 
+    modules to get only text from url page, gets their
+    frequencies and save them to the db and returns 
+    JQCloud's required graph input.
+    Note: can be further modified to
+    db saving in another thread
+    '''
     # take out only top 100
     url_parser = UrlInterpreter(user_url)
     text = url_parser.get_all_text_sim()
@@ -71,12 +79,13 @@ def get_news_words(user_url):
 
     return '[]'
 
+# Saves the words into db
 def save_words(final_words):
     values = [(hasher.get_salted_hash(word), encryptor.encypt(word), count) for word, count in final_words]
     
     mysql.insert_many(values)
 
-# Login form class
+# Basic Login form class
 class LoginForm(Form):
     username = StringField('Username', [validators.Length(min=4, max=50)])
     password = PasswordField('Password', [validators.Length(min=4, max=50)])
@@ -118,13 +127,13 @@ def is_logged_in(f):
 
 # logouts the user
 @app.route('/logout')
-@is_logged_in
+@is_logged_in # for loggedin users only
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
 @app.route('/admin')
-@is_logged_in
+@is_logged_in # restrict access to loggedin users only
 def admin():
     # Get all words
     result = mysql.list()
