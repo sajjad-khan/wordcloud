@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, session
 import operator
 import re
 import nltk
@@ -25,6 +25,8 @@ app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Haripur@1'
 app.config['MYSQL_DB'] = 'wordscloudapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+app.config['USE_UNICODE'] = True
+# use_unicode=True
 
 # init MySQL
 mysql = MySQL(app)
@@ -77,21 +79,16 @@ def get_news_words(user_url):
             
             norm_words_counts_sorted = norm_words_counts.most_common()
 
-            norm_words_counts_sorted_100 =  norm_words_counts_sorted[:100]
-            
-            e = encode('a message')
-            d = decode(e)
-            print([e])
-            print([d])
+            norm_words_counts_sorted_100 =  norm_words_counts_sorted[:2]
 
-            print("final: ", len(norm_words_counts_sorted_100))
+            # print("final: ", len(norm_words_counts_sorted_100))
             print("most common")
             for letter, count in norm_words_counts_sorted_100:
                 e = encode(letter)
                 d = decode(e)
-                print([letter])
-                print([e])
-                print([d])
+                print('original : ', [letter])
+                print('encoded : ', [e])
+                print('decoded : ', [d])
 
                 print (' =  = {}'.format(len(e)))
 
@@ -120,7 +117,7 @@ def save_words(final_words):
                 count = VALUES(count)
                 '''
     # values list
-    values = [(get_word_salted_hash(word), encode(word), count) for word, count in final_words]
+    values = [(get_word_salted_hash(word), encode(word).encode('utf8'), count) for word, count in final_words]
     
     # Insert Single row    
     # cur.execute(query, values)
@@ -138,14 +135,15 @@ def save_words(final_words):
     # Close connection
     cur.close()
 
+# uuid is used to generate a random number
+salt = uuid.uuid4().hex
+
 def get_word_salted_hash(password):
-    # uuid is used to generate a random number
-    salt = uuid.uuid4().hex
     return hashlib.sha256(salt.encode() + password.encode()).hexdigest() + ':' + salt
     
-def check_word_salted_hash(hashed_password, user_password):
-    password, salt = hashed_password.split(':')
-    return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
+def get_word_from_salted_hash(hashed_word, word):
+    password, salt = hashed_word.split(':')
+    return password == hashlib.sha256(salt.encode() + word.encode()).hexdigest()
 
 secret_key = '1234567890123456' # store somewhere safe
 
@@ -171,7 +169,33 @@ def decode(string):
     encoded_string = ''.join(encoded_chars)
     return encoded_string
 
+@app.route('/admin')
+def admin():
+    # Create curser
+    cur = mysql.connection.cursor()
+
+    # Get articles
+    result = cur.execute("SELECT * FROM topwords ORDER BY count DESC")
+    words_list = cur.fetchall()
+
+    if(result > 0):
+            # values list
+        # plain_words_list = [{'hword': hword, 'word': decode(eword), 'frequency': count} for hword, eword, count in words_list]
+        # plain_words_list = [(get_word_from_salted_hash(word), decode(word), count) for word, count in words_list]
+        for word_row in words_list:
+            word_row['word'] = 'word'
+            print(" == ", word_row['word'], " == ", decode(word_row['word']))
+            # d = decode(e)
+
+        plain_words_list = words_list
+        return render_template('admin.html', plain_words_list=plain_words_list)
+    else:
+        msg = 'No Words Found'
+        return render_template('admin.html', msg=msg)
+
+    cur.close()
 
 if __name__ == '__main__':
+    app.secret_key = 'secret123'
     app.run(debug=True) 
  

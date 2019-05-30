@@ -1,0 +1,23 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+    <h1>Admin Page <small>Words frequency table</small></h1>
+    
+    <hr>
+    <table class="table table-striped">
+        <tr>
+            <th>Word</th>
+            <th>Frequency</th>
+            <th></th>
+        </tr>
+        {% for plain_word in plain_words_list %}
+        <tr>
+            <td>{{plain_word.word}}</td>
+            <td>{{plain_word.count}}</td>
+            <td> <a href="delete_word/{{plain_word.hword}}" class="btn btn-danger pull-right">Delete</a> </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+{% endblock %}
