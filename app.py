@@ -89,9 +89,10 @@ def login():
     credentials should come from e.g. users table
     where password stored in encrypted hash form
     '''
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    form = LoginForm(request.form)
+    if request.method == 'POST' and form.validate():
+        username = form.username.data
+        password = str(form.password.data)
 
         if username == 'admin' and password == 'root':
                 session['logged_in'] = True
@@ -103,7 +104,7 @@ def login():
             return render_template('login.html', error = error)
     
     # GET case
-    return render_template('login.html')
+    return render_template('login.html', form=form)
 
 # Check if user logged in
 def is_logged_in(f):
