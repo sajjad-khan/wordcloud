@@ -17,6 +17,7 @@ import hashlib, uuid, hashlib, base64 # for salted hash and encryption
 app = Flask(__name__)
 
 from db_ctrl import DB_CTRL
+from url_to_words import URL_TO_WORDS
 
 from flask_mysqldb import MySQL
 
@@ -28,8 +29,8 @@ app.config['MYSQL_DB'] = 'wordscloudapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 app.config['USE_UNICODE'] = True
 
-# init MySQL
-mysql = MySQL(app)
+# init MySQL and its controller module
+mysql = DB_CTRL(MySQL(app))
 
 @app.route('/')
 def home_page():
@@ -48,79 +49,29 @@ def word_cloud():
 
 def get_news_words(user_url):
     if user_url:
-        raw_html = None
-        try:            
-            # call the api
-            raw_html = requests.get(user_url)
-            app.logger.info(raw_html)
-        except Exception as e:
-            app.logger.info("Unable to get URL. Please make sure it's valid and try again.")
-            app.logger.info(repr(e))
-        if raw_html:
-            # text processing
-            raw = BeautifulSoup(raw_html.text, 'html.parser').get_text()
-            # nltk.data.path.append('./nltk_data/')  # set the path
-            tokens = word_tokenize(raw)
-            text = nltk.Text(tokens)
+        # take out only top 100
+        url_parser = URL_TO_WORDS('https://www.google.com/')
+        words_sorted_100 = url_parser.parse(100)
 
-            # remove punctuation, create raw words
-            nonPunct = re.compile('.*[A-Za-z].*')
-            raw_words = [w for w in text if nonPunct.match(w)]
-            
-            # stop words
-            stop_words = set(stopwords.words('english'))
-
-            norm_words = [w for w in raw_words if w.lower() not in stop_words and len(w) > 3 and len(w) < 50]
-            norm_words_counts = Counter(norm_words)
-            
-            # sort the list according to frequency
-            norm_words_counts_sorted = norm_words_counts.most_common()
-
-            # take out only top 100
-            norm_words_counts_sorted_100 =  norm_words_counts_sorted[:100]
-
+        if len(words_sorted_100) > 0:
             # JQCloud requires words in format {'text': 'sample', 'weight': '100'}
             # so, lets convert out word_freq in the respective format
-            words_json = [{'text': word, 'weight': count} for word, count in norm_words_counts_sorted_100]
+            words_json = [{'text': word, 'weight': count} for word, count in words_sorted_100]
             
             # save the results into db
-            save_words(norm_words_counts_sorted_100)
+            save_words(words_sorted_100)
 
             app.logger.info('Done!')
 
             # now convert it into a string format and return it
             return json.dumps(words_json)    
+
     return '[]'
 
 def save_words(final_words):
-    # Create cursor
-    cur = mysql.connection.cursor()
-
-    # MySQL query string
-    query = '''INSERT INTO 
-                topwords(word_shash, word, count) 
-                VALUES(%s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                count = VALUES(count)
-                '''
-    # values list
     values = [(get_word_salted_hash(word), b64_encypt_text(word), count) for word, count in final_words]
     
-    # Insert Single row    
-    # cur.execute(query, values)
-
-    try:
-        # Insert Multiple rows
-        result  = cur.executemany(query, values)
-        app.logger.info(result)
-
-        # Commit to DB
-        mysql.connection.commit()
-    except:
-        mysql.connection.rollback() 
-
-    # Close connection
-    cur.close()
+    mysql.insert_many(values)
 
 # uuid is used to generate a random number to generate salted hash key
 salt = uuid.uuid4().hex
@@ -158,23 +109,16 @@ def b64_decrypt_text(string):
 
 @app.route('/admin')
 def admin():
-    # Create curser
-    cur = mysql.connection.cursor()
+    # Get all words
+    result = mysql.list()
 
-    # Get words
-    result = cur.execute("SELECT * FROM topwords ORDER BY count DESC")
-    words_list = cur.fetchall()
-    cur.close()
-
-    if(result > 0):
-        for word_row in words_list:
+    if(len(result) > 0):
+        for word_row in result:
             word_row['word'] = b64_decrypt_text(word_row['word'])
 
-        plain_words_list = words_list
-        return render_template('admin.html', plain_words_list=plain_words_list)
+        return render_template('admin.html', plain_words_list=result)
     else:
-        msg = 'No Words Found'
-        return render_template('admin.html', msg=msg)
+        return render_template('admin.html')
 
 
 if __name__ == '__main__':
