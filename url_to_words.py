@@ -7,7 +7,7 @@ from collections import Counter
 from bs4 import BeautifulSoup # for parsing raw html string
 import requests  # this we will use to call API and get data
 
-class URL_TO_WORDS:
+class UrlToWords:
     def __init__(self, url):
         self.user_url = unquote(url)
 
@@ -48,7 +48,7 @@ class URL_TO_WORDS:
             return []
 
 def main():
-    url_parser = URL_TO_WORDS('https://www.google.com/')
+    url_parser = UrlToWords('https://www.google.com/')
     words = url_parser.parse(10)
     for word, count in words:
         print('{} occurred {} times'.format(word, count))

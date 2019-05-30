@@ -1,6 +1,6 @@
 from flask_mysqldb import MySQL
 
-class DB_CTRL:
+class DbCtrl:
     def __init__(self, db):
         self._db = db
 
@@ -58,6 +58,6 @@ class DB_CTRL:
         return words_list
 
 def main():
-    db = DB_CTRL(None)
+    db = DbCtrl(None)
 
 if __name__=='__main__': main()
