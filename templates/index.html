@@ -1,6 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block body %}
+    
     <!-- Empty div where JQCloud will build the word cloud-->
     <div class="container">
         <div class="jumbotron center-text">
@@ -35,6 +36,7 @@
                 alert("Kindly enter the url first.")
                 return 
             }
+            $('.loader').show();
             console.log('draw graph called');
             $.ajax({
                 url: '/word_cloud', 
@@ -51,6 +53,7 @@
                     // we will build a word cloud into our div with id=word_cloud
                     // we have to specify width and height of the word
                     $('#word_cloud').jQCloud('update', words_data);
+                    $('.loader').hide();
                 },
                 error: function () {
                    alert("error");

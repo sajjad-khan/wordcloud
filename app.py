@@ -1,12 +1,14 @@
-from flask import Flask, request, render_template, session, logging
+from flask import Flask, request, render_template, session, logging, redirect, url_for
 import requests  # this we will use to call API and get data
 import json  # to convert python dictionary to string format
+from functools import wraps # for authentication purposes
+from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 
 from sample_data import SampleWords # sample starter words list
 
 # custom modules
 from db_ctrl import DbCtrl
-from url_to_words import UrlToWords
+from url_interpreter import UrlInterpreter
 from salted_hash import SaltedHash
 from cust_encryption import CustEncryption
 from aes_encryption import AESEncryption
@@ -50,7 +52,7 @@ def word_cloud():
 
 def get_news_words(user_url):
     # take out only top 100
-    url_parser = UrlToWords(user_url)
+    url_parser = UrlInterpreter(user_url)
     text = url_parser.get_all_text_sim()
     top_counts_100 = url_parser.get_word_frequencies(text, 100)
     
@@ -74,7 +76,54 @@ def save_words(final_words):
     
     mysql.insert_many(values)
 
+# Login form class
+class LoginForm(Form):
+    username = StringField('Username', [validators.Length(min=4, max=50)])
+    password = PasswordField('Password', [validators.Length(min=4, max=50)])
+
+# user login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    '''
+    This is for illustration purposes only, 
+    credentials should come from e.g. users table
+    where password stored in encrypted hash form
+    '''
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username == 'admin' and password == 'root':
+                session['logged_in'] = True
+                session['username'] = username
+
+                return redirect(url_for('admin'))
+        else:
+            error = 'Invalid login'
+            return render_template('login.html', error = error)
+    
+    # GET case
+    return render_template('login.html')
+
+# Check if user logged in
+def is_logged_in(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            return redirect(url_for('login'))
+    return wrap
+
+# logouts the user
+@app.route('/logout')
+@is_logged_in
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/admin')
+@is_logged_in
 def admin():
     # Get all words
     result = mysql.list()

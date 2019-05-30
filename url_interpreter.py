@@ -11,7 +11,7 @@ from urllib.request import urlopen
 
 import justext
 
-class UrlToWords:
+class UrlInterpreter:
     def __init__(self, url):
         self.user_url = unquote(url)
 
@@ -76,7 +76,7 @@ class UrlToWords:
         return page
 
 def main():
-    url_parser = UrlToWords('https://www.google.com/')
+    url_parser = UrlInterpreter('https://www.google.com/')
     text = url_parser.get_all_text_sim()
     print(text)
     frequencies = url_parser.get_word_frequencies(text, 100)
