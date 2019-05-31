@@ -15,8 +15,11 @@ from aes_encryption import AESEncryption
 
 from flask_mysqldb import MySQL
 
+from redis import Redis
+
 # Create flask app
 app = Flask(__name__)
+redis = Redis(host='redis', port=6379)
 
 # Config MySQL
 app.config['MYSQL_HOST'] = 'localhost'
