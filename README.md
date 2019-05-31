@@ -3,9 +3,9 @@ Visualize Word Frequencies on a web page using Python, Flask and JQCloud
 
 # Flask app server
 
-Manual setup
-
 For db configs see ```app.py``` file
+
+Manual setup
 
 ```
 $ cd <path of word_cloud>
@@ -15,8 +15,10 @@ $ pip install requirements.txt
 $ python app.py
 ```
 
-Docker setup
+Docker based setup
 ```
+$ cd <path of word_cloud>
+
 $ docker build -t word_cloud:latest .
 
 $ docker run -it -d -p 5000:5000 word_cloud
