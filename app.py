@@ -103,14 +103,13 @@ def login():
         username = form.username.data
         password = str(form.password.data)
 
+        print(username)
+        print(password)
         if username == 'admin' and password == 'root':
                 session['logged_in'] = True
                 session['username'] = username
 
                 return redirect(url_for('admin'))
-        else:
-            error = 'Invalid login'
-            return render_template('login.html', error = error)
     
     # GET case
     return render_template('login.html', form=form)
