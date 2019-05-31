@@ -5,9 +5,6 @@
     <!-- Empty div where JQCloud will build the word cloud-->
     <div class="container">
         <div class="jumbotron center-text">
-            <div>
-                <p> This app is built using Python, Flask and JQCloud </p>
-            </div>
             <!-- Form to get input url, can add more widgets later -->
             <form class="center-text"">
                 <div class="form-group">
@@ -15,12 +12,13 @@
                     <input type="text" id="id_user_url" name="user_url" class="form-control">
                 </div>
 
-                <p> <input onclick="submitClicked()" class="btn btn-primary" value="Go" readonly> </p>
+                <div class="float-left"> <input onclick="submitClicked()" class="btn btn-primary" value="Go" readonly> </div>
+                <div id="loader"></div>
             </form>            
         
         </div>
 
-        <div id="loader"></div>
+        
         
         <!-- here JQCloud will add the html for the word cloud-->
         <div class="row">
