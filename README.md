@@ -1,11 +1,11 @@
 # Word Cloud
 Visualize Word Frequencies on a web page using Python, Flask and JQCloud
 
-# flask app server
+# Flask app server
 
 Manual setup
 
-For db configs see app.py file
+For db configs see ```app.py``` file
 
 ```
 $ cd <path of word_cloud>
