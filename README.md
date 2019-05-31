@@ -42,3 +42,10 @@ $ CREATE TABLE `wordscloudapp`.`topwords1` (
   UNIQUE INDEX `word_shash_UNIQUE` (`word_shash` ASC) VISIBLE);
 
 ```
+
+# Best way to safely store and manage the encryption keys
+https://security.stackexchange.com/questions/12332/where-to-store-a-server-side-encryption-key
+
+https://www.freecodecamp.org/news/how-to-securely-store-api-keys-4ff3ea19ebda/
+
+https://stackoverflow.com/questions/11575398/how-can-i-save-my-secret-keys-and-password-securely-in-my-version-control-system
