@@ -44,7 +44,13 @@ $ CREATE TABLE `wordscloudapp`.`topwords1` (
 ```
 
 # Best way to safely store and manage the encryption keys
+1) Use an external Hardware Security Module. There is an entire industry of products designed for offloading security-sensitive operations to external devices. This doesn't solve the problem so much as relocate it, but it relocates it to device that is far more secure, so altogether it's a security win. If you're doing anything high-stakes, then this is almost certainly going to factor into your solution.
+
+2) Tie the encryption key to your hardware. TPM chips are useful for this, as are USB security tokens (not flash drives, though). In this case, crypto only works on that specific piece of hardware, but isn't otherwise restricted. It's a bit like the kid-sidekick version of the HSM mentioned above. Google's recently-announced Project Vault takes this a step further by making a high-bandwidth HSM embeddable into even the smallest consumer devices.
+
 https://security.stackexchange.com/questions/12332/where-to-store-a-server-side-encryption-key
+
+https://en.wikipedia.org/wiki/Hardware_security_module
 
 https://www.freecodecamp.org/news/how-to-securely-store-api-keys-4ff3ea19ebda/
 
